@@ -77,6 +77,14 @@ class BookOpportunitiesRequest(BaseModel):
     gaps: Optional[List[Dict[str, Any]]] = None
 
 
+TOOL_ANNOTATIONS = {
+    "readOnlyHint": True,
+    "readOnly": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
 # MCP Tools Specification
 MCP_TOOLS = [
     {
@@ -92,6 +100,7 @@ MCP_TOOLS = [
             },
             "required": ["theme"],
         },
+        "annotations": TOOL_ANNOTATIONS,
     },
     {
         "name": "search_books_advanced",
@@ -110,6 +119,7 @@ MCP_TOOLS = [
                 "max_results": {"type": "integer", "default": 20},
             },
         },
+        "annotations": TOOL_ANNOTATIONS,
     },
     {
         "name": "get_book_detail",
@@ -119,6 +129,7 @@ MCP_TOOLS = [
             "properties": {"volume_id": {"type": "string"}},
             "required": ["volume_id"],
         },
+        "annotations": TOOL_ANNOTATIONS,
     },
     {
         "name": "build_book_landscape",
@@ -128,6 +139,7 @@ MCP_TOOLS = [
             "properties": {"theme": {"type": "string"}, "books": {"type": "array"}},
             "required": ["theme"],
         },
+        "annotations": TOOL_ANNOTATIONS,
     },
     {
         "name": "extract_topics",
@@ -137,6 +149,7 @@ MCP_TOOLS = [
             "properties": {"theme": {"type": "string"}, "books": {"type": "array"}},
             "required": ["theme"],
         },
+        "annotations": TOOL_ANNOTATIONS,
     },
     {
         "name": "find_book_gaps",
@@ -146,6 +159,7 @@ MCP_TOOLS = [
             "properties": {"theme": {"type": "string"}, "books": {"type": "array"}},
             "required": ["theme"],
         },
+        "annotations": TOOL_ANNOTATIONS,
     },
     {
         "name": "generate_book_opportunities",
@@ -155,6 +169,7 @@ MCP_TOOLS = [
             "properties": {"theme": {"type": "string"}, "gaps": {"type": "array"}},
             "required": ["theme"],
         },
+        "annotations": TOOL_ANNOTATIONS,
     },
 ]
 
@@ -224,17 +239,16 @@ def process_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         
         icons_list = [
             {
+                "src": "https://raw.githubusercontent.com/masisparmo/book-gab-mcp/main/icon.png",
+                "mimeType": "image/png",
+                "sizes": ["256x256"],
+            },
+            {
                 "src": "https://book-gab-mcp.onrender.com/icon.png",
                 "mimeType": "image/png",
                 "sizes": ["256x256"],
-            }
+            },
         ]
-        if ICON_DATA_URI:
-            icons_list.append({
-                "src": ICON_DATA_URI,
-                "mimeType": "image/png",
-                "sizes": ["256x256"],
-            })
 
         return {
             "jsonrpc": "2.0",
@@ -246,8 +260,8 @@ def process_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                     "name": "book-gap-analyzer-mcp",
                     "title": "Book Gap Analyzer Mcp",
                     "version": "1.0.0",
-                    "icon": "https://book-gab-mcp.onrender.com/icon.png",
-                    "iconUrl": "https://book-gab-mcp.onrender.com/icon.png",
+                    "icon": "https://raw.githubusercontent.com/masisparmo/book-gab-mcp/main/icon.png",
+                    "iconUrl": "https://raw.githubusercontent.com/masisparmo/book-gab-mcp/main/icon.png",
                     "icons": icons_list,
                 },
             },
