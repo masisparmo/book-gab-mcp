@@ -213,13 +213,12 @@ def process_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "jsonrpc": "2.0",
             "id": msg_id,
             "result": {
-                "protocolVersion": "2024-11-05",
+                "protocolVersion": "2025-11-25",
                 "capabilities": {"tools": {"listChanged": False}},
                 "serverInfo": {
                     "name": "book-gap-analyzer-mcp",
-                    "title": "BookGap Analyzer Mcp",
+                    "title": "Book Gap Analyzer Mcp",
                     "version": "1.0.0",
-                    "icon": "https://book-gab-mcp.onrender.com/icon.png",
                     "icons": [
                         {
                             "src": "https://book-gab-mcp.onrender.com/icon.png",
