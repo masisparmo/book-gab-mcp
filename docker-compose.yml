@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  book-gap-mcp:
+    build: .
+    container_name: book_gap_mcp
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY:-}
