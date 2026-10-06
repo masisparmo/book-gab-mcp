@@ -1,6 +1,7 @@
 """Book Gap Analyzer MCP Server (FastAPI + Remote MCP SSE + REST OpenAPI)"""
 
 import asyncio
+import base64
 import json
 import os
 from typing import Any, Dict, List, Optional
@@ -8,7 +9,7 @@ import uuid
 from book_analyzer import BookGapEngine
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 from starlette.responses import StreamingResponse, FileResponse
 
@@ -16,10 +17,19 @@ GOOGLE_BOOKS_API_KEY = os.environ.get("GOOGLE_BOOKS_API_KEY", None)
 engine = BookGapEngine(api_key=GOOGLE_BOOKS_API_KEY)
 sse_sessions: Dict[str, asyncio.Queue] = {}
 
+ICON_PATH = os.path.join(os.path.dirname(__file__), "icon.png")
+ICON_DATA_URI = ""
+if os.path.exists(ICON_PATH):
+    try:
+        with open(ICON_PATH, "rb") as _f:
+            ICON_DATA_URI = f"data:image/png;base64,{base64.b64encode(_f.read()).decode('utf-8')}"
+    except Exception:
+        pass
+
 ICON_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Cross-Origin-Resource-Policy": "cross-origin",
-    "Cache-Control": "no-cache",
+    "Cache-Control": "public, max-age=86400",
 }
 
 
@@ -209,23 +219,36 @@ def process_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     msg_id = msg.get("id")
 
     if method == "initialize":
+        params = msg.get("params", {})
+        client_version = params.get("protocolVersion", "2024-11-05")
+        
+        icons_list = [
+            {
+                "src": "https://book-gab-mcp.onrender.com/icon.png",
+                "mimeType": "image/png",
+                "sizes": ["256x256"],
+            }
+        ]
+        if ICON_DATA_URI:
+            icons_list.append({
+                "src": ICON_DATA_URI,
+                "mimeType": "image/png",
+                "sizes": ["256x256"],
+            })
+
         return {
             "jsonrpc": "2.0",
             "id": msg_id,
             "result": {
-                "protocolVersion": "2025-11-25",
+                "protocolVersion": client_version if client_version.startswith("202") else "2024-11-05",
                 "capabilities": {"tools": {"listChanged": False}},
                 "serverInfo": {
                     "name": "book-gap-analyzer-mcp",
                     "title": "Book Gap Analyzer Mcp",
                     "version": "1.0.0",
-                    "icons": [
-                        {
-                            "src": "https://book-gab-mcp.onrender.com/icon.png",
-                            "mimeType": "image/png",
-                            "sizes": ["256x256"],
-                        }
-                    ],
+                    "icon": "https://book-gab-mcp.onrender.com/icon.png",
+                    "iconUrl": "https://book-gab-mcp.onrender.com/icon.png",
+                    "icons": icons_list,
                 },
             },
         }
@@ -360,30 +383,96 @@ def api_generate_book_opportunities(req: BookOpportunitiesRequest):
     return engine.generate_book_opportunities(theme=req.theme, gaps=req.gaps)
 
 
-# 3. Icon & Favicon Handlers (with CORS & Cross-Origin-Resource-Policy)
+# 3. MCP Discovery Endpoints
+@app.get("/.well-known/mcp.json", include_in_schema=False)
+@app.get("/.well-known/mcp/server-card.json", include_in_schema=False)
+def mcp_server_card():
+    return {
+        "name": "book-gap-analyzer-mcp",
+        "title": "Book Gap Analyzer Mcp",
+        "description": "Remote MCP Server & API untuk analisa GAP penulisan buku berbasis Google Books.",
+        "version": "1.0.0",
+        "iconUrl": "https://book-gab-mcp.onrender.com/icon.png",
+        "icon": "https://book-gab-mcp.onrender.com/icon.png",
+        "icons": [
+            {
+                "src": "https://book-gab-mcp.onrender.com/icon.png",
+                "mimeType": "image/png",
+                "sizes": ["256x256"],
+            }
+        ],
+        "transport": {
+            "type": "http",
+            "url": "https://book-gab-mcp.onrender.com/mcp",
+        },
+    }
+
+
+# 4. Icon & Favicon Handlers (with CORS & Cross-Origin-Resource-Policy)
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
+    if os.path.exists("favicon.ico"):
+        return FileResponse("favicon.ico", media_type="image/x-icon", headers=ICON_HEADERS)
     if os.path.exists("icon.png"):
         return FileResponse("icon.png", media_type="image/png", headers=ICON_HEADERS)
     return Response(status_code=404)
 
 
 @app.get("/icon.png", include_in_schema=False)
+@app.get("/favicon.png", include_in_schema=False)
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
 async def icon_png():
     if os.path.exists("icon.png"):
         return FileResponse("icon.png", media_type="image/png", headers=ICON_HEADERS)
     return Response(status_code=404)
 
 
+# 5. Root & Health Endpoints
 @app.get("/", include_in_schema=False)
-def root():
-    return {
-        "status": "ok",
-        "service": "Book Gap Analyzer MCP",
-        "docs": "/docs",
-        "mcp_sse": "/sse",
-        "icon": "/icon.png"
-    }
+def root(request: Request):
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept and "text/html" not in accept:
+        return {
+            "status": "ok",
+            "service": "Book Gap Analyzer MCP",
+            "docs": "/docs",
+            "mcp_sse": "/sse",
+            "icon": "/icon.png",
+        }
+    html_content = """<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Gap Analyzer MCP</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="256x256" href="/icon.png">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta property="og:title" content="Book Gap Analyzer MCP">
+    <meta property="og:description" content="Remote MCP Server & API untuk analisa GAP penulisan buku berbasis Google Books.">
+    <meta property="og:image" content="https://book-gab-mcp.onrender.com/icon.png">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #f8fafc; }
+        .card { text-align: center; padding: 2.5rem; background: #1e293b; border-radius: 1rem; border: 1px solid #334155; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .card img { width: 96px; height: 96px; border-radius: 1rem; margin-bottom: 1rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        p { color: #94a3b8; font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.5rem; }
+        .badge { display: inline-block; padding: 0.45rem 1rem; background: #0284c7; color: #fff; font-size: 0.85rem; font-weight: 600; border-radius: 9999px; text-decoration: none; }
+        .badge:hover { background: #0369a1; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="/icon.png" alt="Book Gap Analyzer MCP Logo">
+        <h1>Book Gap Analyzer MCP</h1>
+        <p>Remote MCP Server & API untuk analisa GAP penulisan buku berbasis Google Books.</p>
+        <a class="badge" href="/docs">Buka Dokumentasi API</a>
+    </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content, status_code=200)
 
 
 @app.get("/health")
