@@ -286,10 +286,16 @@ def process_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 # 1. MCP Endpoints (Streamable HTTP & SSE)
 @app.post("/mcp")
+@app.post("/")
 async def mcp_direct_post(request: Request):
     body = await request.json()
     res = process_mcp_message(body)
     return JSONResponse(content=res) if res else Response(status_code=204)
+
+
+@app.get("/mcp", include_in_schema=False)
+def mcp_get(request: Request):
+    return root(request)
 
 
 @app.get("/sse")
@@ -418,7 +424,13 @@ async def favicon():
     return Response(status_code=404)
 
 
+@app.get("/robots.txt", include_in_schema=False)
+def robots_txt():
+    return Response("User-agent: *\nAllow: /\n", media_type="text/plain")
+
+
 @app.get("/icon.png", include_in_schema=False)
+@app.get("/icon-256.png", include_in_schema=False)
 @app.get("/favicon.png", include_in_schema=False)
 @app.get("/apple-touch-icon.png", include_in_schema=False)
 @app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
@@ -426,6 +438,20 @@ async def icon_png():
     if os.path.exists("icon.png"):
         return FileResponse("icon.png", media_type="image/png", headers=ICON_HEADERS)
     return Response(status_code=404)
+
+
+@app.get("/icon-48.png", include_in_schema=False)
+async def icon_48_png():
+    if os.path.exists("icon-48.png"):
+        return FileResponse("icon-48.png", media_type="image/png", headers=ICON_HEADERS)
+    return await icon_png()
+
+
+@app.get("/icon-192.png", include_in_schema=False)
+async def icon_192_png():
+    if os.path.exists("icon-192.png"):
+        return FileResponse("icon-192.png", media_type="image/png", headers=ICON_HEADERS)
+    return await icon_png()
 
 
 # 5. Root & Health Endpoints
@@ -447,12 +473,19 @@ def root(request: Request):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Gap Analyzer MCP</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
     <link rel="icon" type="image/png" sizes="256x256" href="/icon.png">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <meta property="og:type" content="website">
     <meta property="og:title" content="Book Gap Analyzer MCP">
     <meta property="og:description" content="Remote MCP Server & API untuk analisa GAP penulisan buku berbasis Google Books.">
     <meta property="og:image" content="https://book-gab-mcp.onrender.com/icon.png">
+    <meta property="og:image:width" content="256">
+    <meta property="og:image:height" content="256">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:image" content="https://book-gab-mcp.onrender.com/icon.png">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #f8fafc; }
         .card { text-align: center; padding: 2.5rem; background: #1e293b; border-radius: 1rem; border: 1px solid #334155; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
