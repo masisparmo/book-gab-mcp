@@ -352,16 +352,16 @@ def api_generate_book_opportunities(req: BookOpportunitiesRequest):
   return engine.generate_book_opportunities(theme=req.theme, gaps=req.gaps)
 
 @app.get("/favicon.ico", include_in_schema=False)
-356 async def favicon():
-357     if os.path.exists("icon.png"):
-358         return FileResponse("icon.png", media_type="image/png")
-359     return Response(status_code=404)
-360 
-361 @app.get("/icon.png", include_in_schema=False)
-362 async def icon_png():
-363     if os.path.exists("icon.png"):
-364         return FileResponse("icon.png", media_type="image/png")
-365     return Response(status_code=404)
+async def favicon():
+     if os.path.exists("icon.png"):
+         return FileResponse("icon.png", media_type="image/png")
+     return Response(status_code=404)
+ 
+ @app.get("/icon.png", include_in_schema=False)
+ async def icon_png():
+     if os.path.exists("icon.png"):
+         return FileResponse("icon.png", media_type="image/png")
+     return Response(status_code=404)
 
 @app.get("/health")
 def health():
