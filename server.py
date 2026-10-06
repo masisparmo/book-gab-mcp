@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, FileResponse
 
 GOOGLE_BOOKS_API_KEY = os.environ.get("GOOGLE_BOOKS_API_KEY", None)
 engine = BookGapEngine(api_key=GOOGLE_BOOKS_API_KEY)
@@ -351,6 +351,17 @@ def api_find_book_gaps(req: GapAnalysisRequest):
 def api_generate_book_opportunities(req: BookOpportunitiesRequest):
   return engine.generate_book_opportunities(theme=req.theme, gaps=req.gaps)
 
+@app.get("/favicon.ico", include_in_schema=False)
+356 async def favicon():
+357     if os.path.exists("icon.png"):
+358         return FileResponse("icon.png", media_type="image/png")
+359     return Response(status_code=404)
+360 
+361 @app.get("/icon.png", include_in_schema=False)
+362 async def icon_png():
+363     if os.path.exists("icon.png"):
+364         return FileResponse("icon.png", media_type="image/png")
+365     return Response(status_code=404)
 
 @app.get("/health")
 def health():
