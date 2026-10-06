@@ -16,6 +16,12 @@ GOOGLE_BOOKS_API_KEY = os.environ.get("GOOGLE_BOOKS_API_KEY", None)
 engine = BookGapEngine(api_key=GOOGLE_BOOKS_API_KEY)
 sse_sessions: Dict[str, asyncio.Queue] = {}
 
+ICON_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Cross-Origin-Resource-Policy": "cross-origin",
+    "Cache-Control": "no-cache",
+}
+
 
 # Pydantic Schemas for REST API
 class SearchBooksRequest(BaseModel):
@@ -218,9 +224,9 @@ def process_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                         {
                             "src": "https://book-gab-mcp.onrender.com/icon.png",
                             "mimeType": "image/png",
-                            "sizes": ["256x256"]
+                            "sizes": ["256x256"],
                         }
-                    ]
+                    ],
                 },
             },
         }
@@ -355,19 +361,30 @@ def api_generate_book_opportunities(req: BookOpportunitiesRequest):
     return engine.generate_book_opportunities(theme=req.theme, gaps=req.gaps)
 
 
-# 3. Icon & Favicon Handlers
+# 3. Icon & Favicon Handlers (with CORS & Cross-Origin-Resource-Policy)
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     if os.path.exists("icon.png"):
-        return FileResponse("icon.png", media_type="image/png")
+        return FileResponse("icon.png", media_type="image/png", headers=ICON_HEADERS)
     return Response(status_code=404)
 
 
 @app.get("/icon.png", include_in_schema=False)
 async def icon_png():
     if os.path.exists("icon.png"):
-        return FileResponse("icon.png", media_type="image/png")
+        return FileResponse("icon.png", media_type="image/png", headers=ICON_HEADERS)
     return Response(status_code=404)
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return {
+        "status": "ok",
+        "service": "Book Gap Analyzer MCP",
+        "docs": "/docs",
+        "mcp_sse": "/sse",
+        "icon": "/icon.png"
+    }
 
 
 @app.get("/health")
