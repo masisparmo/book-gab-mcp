@@ -150,15 +150,8 @@ MCP_TOOLS = [
 
 app = FastAPI(
     title="Book Research & Gap Analyzer MCP",
-    description=(
-        "Remote MCP Server & API untuk analisa GAP penulisan buku berbasis"
-        " Google Books."
-    ),
-    version="1.0.0",
-    servers=[
-        {"url": "https://bookgap.isparmo.com", "description": "Production"},
-        {"url": "http://localhost:8000", "description": "Local Development"},
-    ],
+    description="Remote MCP Server & API untuk analisa GAP penulisan buku berbasis Google Books.",
+    version="1.0.0"
 )
 
 app.add_middleware(
